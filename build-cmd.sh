@@ -54,12 +54,14 @@ echo "${GLOD_VERSION}.${build}" > "${STAGING_DIR}/VERSION.txt"
 
 case "$AUTOBUILD_PLATFORM" in
     windows*)
-        build_sln "glodlib.sln" "Release|$AUTOBUILD_WIN_VSPLATFORM"
+        build_sln "glodlib.sln" "Debug" "$AUTOBUILD_WIN_VSPLATFORM"
+        build_sln "glodlib.sln" "Release" "$AUTOBUILD_WIN_VSPLATFORM"
 
+        mkdir -p stage/lib/debug
         mkdir -p stage/lib/release
 
-        cp "lib/release/glod.lib" "stage/lib/release/glod.lib"
-        cp "lib/release/glod.dll" "stage/lib/release/glod.dll"
+        cp "lib/debug/glod."{lib,dll,exp,pdb} "stage/lib/release/"
+        cp "lib/release/glod."{lib,dll,exp,pdb} "stage/lib/release/"
     ;;
     darwin*)
         libdir="$top/stage/lib"
