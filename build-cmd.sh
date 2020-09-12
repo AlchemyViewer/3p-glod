@@ -60,7 +60,7 @@ case "$AUTOBUILD_PLATFORM" in
         mkdir -p stage/lib/debug
         mkdir -p stage/lib/release
 
-        cp "lib/debug/glod."{lib,dll,exp,pdb} "stage/lib/release/"
+        cp "lib/debug/glod."{lib,dll,exp,pdb} "stage/lib/debug/"
         cp "lib/release/glod."{lib,dll,exp,pdb} "stage/lib/release/"
     ;;
     darwin*)
