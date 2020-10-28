@@ -49,8 +49,7 @@ q
 }' | \
 tr -d '\r')"
 
-build=${AUTOBUILD_BUILD_ID:=0}
-echo "${GLOD_VERSION}.${build}" > "${STAGING_DIR}/VERSION.txt"
+echo "${GLOD_VERSION}" > "${STAGING_DIR}/VERSION.txt"
 
 case "$AUTOBUILD_PLATFORM" in
     windows*)
@@ -76,11 +75,33 @@ case "$AUTOBUILD_PLATFORM" in
             "$libdir/release/libGLOD.dylib"
     ;;
     linux*)
+        # Default target per --address-size
+        opts="${TARGET_OPTS:--m$AUTOBUILD_ADDRSIZE}"
+
+        # Setup build flags
+		DEBUG_COMMON_FLAGS="$opts -Og -g -fPIC -DPIC"
+		RELEASE_COMMON_FLAGS="$opts -O3 -g -fPIC -DPIC -fstack-protector-strong -D_FORTIFY_SOURCE=2"
+		DEBUG_CFLAGS="$DEBUG_COMMON_FLAGS"
+		RELEASE_CFLAGS="$RELEASE_COMMON_FLAGS"
+        DEBUG_CXXFLAGS="$DEBUG_COMMON_FLAGS -std=c++17"
+		RELEASE_CXXFLAGS="$RELEASE_COMMON_FLAGS -std=c++17"
+        DEBUG_CPPFLAGS="-DPIC"
+		RELEASE_CPPFLAGS="-DPIC"
+
         libdir="$top/stage/lib"
+        mkdir -p "$libdir"/debug
+        export CFLAGS="$DEBUG_CFLAGS"
+        export CXXFLAGS="$DEBUG_CXXFLAGS"
+        export LFLAGS="$DEBUG_CFLAGS"
+        make -C src clean
+        make -C src debug
+        cp "lib/libGLOD.so" \
+            "$libdir/debug/libGLOD.so"
+
         mkdir -p "$libdir"/release
-        export CFLAGS="-m$AUTOBUILD_ADDRSIZE $LL_BUILD_RELEASE"
-        export CXXFLAGS="$CFLAGS"
-        export LFLAGS="$CFLAGS"
+        export CFLAGS="$RELEASE_CFLAGS"
+        export CXXFLAGS="$RELEASE_CXXFLAGS"
+        export LFLAGS="$RELEASE_CFLAGS"
         make -C src clean
         make -C src release
         cp "lib/libGLOD.so" \
