@@ -27,29 +27,8 @@ source_environment_tempfile="$STAGING_DIR/source_environment.sh"
 "$autobuild" source_environment > "$source_environment_tempfile"
 . "$source_environment_tempfile"
 
-# Early versions of GLOD seem awfully coy about version numbers. The most
-# likely place we've found is the README file's CHANGELOG section -- and even
-# that doesn't seem completely up-to-date!
-# The first sed command prints everything from the word CHANGELOG through the
-# end of the file.
-# The second sed command matches lines that look like this:
-# version (date)
-# trusting that from the CHANGELOG line on, the only lines that look like that
-# are in fact version headers.
-# We only want the second sed command to print the FIRST version header -- so
-# instead of just printing every such line, make it execute {spq}: substitute,
-# print, quit.
-# But for some reason that introduces a final '\r' character -- yes, even on
-# Posix. Get rid of it.
-GLOD_VERSION="$(sed -n '/^CHANGELOG/,$p' README | \
-sed -n -E '/^([^[:space:]]+)[[:space:]]+\(.*\)/{
-s//\1/
-p
-q
-}' | \
-tr -d '\r')"
-
-echo "${GLOD_VERSION}" > "${STAGING_DIR}/VERSION.txt"
+# Just hard code the version. It will never change for this dead decrepit sad library.
+echo "1.0.3" > "${STAGING_DIR}/VERSION.txt"
 
 case "$AUTOBUILD_PLATFORM" in
     windows*)
