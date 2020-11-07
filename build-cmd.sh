@@ -42,16 +42,56 @@ case "$AUTOBUILD_PLATFORM" in
         cp "lib/release/glod."{lib,dll,exp,pdb} "stage/lib/release/"
     ;;
     darwin*)
+        # Setup osx sdk platform
+        SDKNAME="macosx10.15"
+        export SDKROOT=$(xcodebuild -version -sdk ${SDKNAME} Path)
+        export MACOSX_DEPLOYMENT_TARGET=10.13
+
+        # Setup build flags
+        ARCH_FLAGS="-arch x86_64"
+        SDK_FLAGS="-mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET} -isysroot ${SDKROOT}"
+        DEBUG_COMMON_FLAGS="$ARCH_FLAGS $SDK_FLAGS -Og -g -msse4.2 -fPIC -DPIC"
+        RELEASE_COMMON_FLAGS="$ARCH_FLAGS $SDK_FLAGS -Ofast -ffast-math -g -msse4.2 -fPIC -DPIC -fstack-protector-strong"
+        DEBUG_CFLAGS="$DEBUG_COMMON_FLAGS"
+        RELEASE_CFLAGS="$RELEASE_COMMON_FLAGS"
+        DEBUG_CXXFLAGS="$DEBUG_COMMON_FLAGS -std=c++17"
+        RELEASE_CXXFLAGS="$RELEASE_COMMON_FLAGS -std=c++17"
+        DEBUG_CPPFLAGS="-DPIC"
+        RELEASE_CPPFLAGS="-DPIC"
+        DEBUG_LDFLAGS="$ARCH_FLAGS $SDK_FLAGS -Wl,-headerpad_max_install_names -Wl,-macos_version_min,$MACOSX_DEPLOYMENT_TARGET"
+        RELEASE_LDFLAGS="$ARCH_FLAGS $SDK_FLAGS -Wl,-headerpad_max_install_names -Wl,-macos_version_min,$MACOSX_DEPLOYMENT_TARGET"
+
         libdir="$top/stage/lib"
+        mkdir -p "$libdir"/debug
         mkdir -p "$libdir"/release
-        export CFLAGS="-m$AUTOBUILD_ADDRSIZE $LL_BUILD_RELEASE"
-        export CXXFLAGS="$CFLAGS"
-        export LFLAGS="$CFLAGS"
+
+        export CFLAGS="$DEBUG_CFLAGS"
+        export CXXFLAGS="$DEBUG_CXXFLAGS"
+        export LDFLAGS="$DEBUG_LDFLAGS"
+        make -C src clean
+        make -C src debug
+        cp "lib/libGLOD.dylib" \
+            "$libdir/debug/libGLOD.dylib"
+
+        pushd "${libdir}/debug"
+            fix_dylib_id "libGLOD.dylib"
+            dsymutil libGLOD.dylib
+            strip -x -S libGLOD.dylib
+        popd
+
+        export CFLAGS="$RELEASE_CFLAGS"
+        export CXXFLAGS="$RELEASE_CXXFLAGS"
+        export LDFLAGS="$RELEASE_LDFLAGS"
         make -C src clean
         make -C src release
-        install_name_tool -id "@executable_path/../Resources/libGLOD.dylib" "lib/libGLOD.dylib" 
         cp "lib/libGLOD.dylib" \
             "$libdir/release/libGLOD.dylib"
+
+        pushd "${libdir}/release"
+            fix_dylib_id "libGLOD.dylib"
+            dsymutil libGLOD.dylib
+            strip -x -S libGLOD.dylib
+        popd
     ;;
     linux*)
         # Default target per --address-size
